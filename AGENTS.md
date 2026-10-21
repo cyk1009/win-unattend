@@ -9,8 +9,8 @@ iVentoy 无人值守部署 Windows 11 的**文档 + 配置仓库**：没有代�
 |---|---|---|
 | `unattend.xml` | answer file（自动装机） | `<iVentoy>\user\scripts\` |
 | `user/deploy/install-drivers.cmd` | 首次登录时在客户机跑的批处理 | `<iVentoy>\user\deploy\` |
-| `user/deploy/tool_files.txt` | 工具目录清单（114 项） | `<iVentoy>\user\deploy\` |
-| `README.md` | 实施手册（主文档） | — |
+| `user/deploy/tool_files.txt` | 工具目录清单（**仓库内是空占位，部署时现场生成**） | `<iVentoy>\user\deploy\` |
+| `README.md` | 操作单（怎么部署） | — |
 | `user/deploy/README.md` | deploy 目录说明 | — |
 
 `tool\` 目录、Windows ISO、驱动包等二进制由 `.gitignore` 排除，**不在仓库里**。这决定了
@@ -31,18 +31,18 @@ iVentoy 无人值守部署 Windows 11 的**文档 + 配置仓库**：没有代�
 ## 改一处就要同步改多处
 
 同一批事实在 `README.md`、`user/deploy/README.md`、`unattend.xml` 的注释里重复出现
-（文件数、体积、字节数、路径、方案说明）。**改完必须 grep 确认没有漏改**——
+（体积、路径、方案说明）。**改完必须 grep 确认没有漏改**——
 本项目已经因此留下过「112 行 / 599 MB」与「114 项 / 999 MB」自相矛盾的旧数字。
 
 改 `unattend.xml` 时额外注意三点：
 
 1. iVentoy **把自动安装脚本缓存在内存里，只在服务启动时读一次**。改完必须重启 iVentoy，
    否则客户端拿到的还是旧内容，而且**不报错**。
-2. **字节数变了要跟着更新文档**：客户端回传日志里的 `len:` 是校验"客户端拿到哪一版"的唯一手段，
-   README 里记着当前值（`25589`）。改动后要同步更新，并提醒用户装机时重新确认。
-3. 改动等于**作废上一轮装机验证**。README 明确写着脚本处于"实测通过"状态，
+2. **字节数变了要心里有数**：客户端回传日志里的 `len:` 是校验"客户端拿到哪一版"的唯一手段，
+   应等于磁盘上 `unattend.xml` 的字节数（当前 `25589`，以 `wc -c` 为准）。改动后提醒用户装机时重新确认。
+3. 改动等于**作废上一轮装机验证**。这份 answer file 已在一轮真机上实测通过，
    所以除非有功能理由，不要为了措辞或纯显示问题去动它——
-   `%time%` 那个日志时间戳问题是**故意不修**的（见 README「遗留问题」）。
+   `%time%` 那个日志时间戳问题是**故意不修**的（见 README「注意」）。
 
 ## 不要做这些（有文档依据或已踩过坑）
 
@@ -65,7 +65,7 @@ iVentoy 无人值守部署 Windows 11 的**文档 + 配置仓库**：没有代�
 没有 CI。能在 shell 里自动查的只有格式类问题，改完请跑一遍：
 
 ```sh
-cd ~/dsh-iventoy
+cd ~/win-unattend
 
 # 编码与行尾
 file unattend.xml user/deploy/tool_files.txt user/deploy/install-drivers.cmd
@@ -80,12 +80,12 @@ LC_ALL=C grep -n $'[\x80-\xff]' user/deploy/install-drivers.cmd
 tr -d '\r' < user/deploy/tool_files.txt | LC_ALL=C grep -nv '^[A-Za-z0-9._/-]*$'
 
 # 与文档记录的数值比对
-wc -c unattend.xml                  # 应为 25589（改了就要同步改 README）
-grep -c "" user/deploy/tool_files.txt   # 应为 114
+wc -c unattend.xml                  # 应为 25589
+grep -c "" user/deploy/tool_files.txt   # 仓库内应为 0（空占位，清单部署时生成）
 ```
 
 **做不到的**：`tool\` 和 ISO 不在仓库里，**装机流程是否还跑得通**无法在此验证，
-只能真机/虚拟机跑一轮（README「单机验收」一节）。需要这类结论时，明确告诉用户
+只能真机/虚拟机跑一轮（README「装机」「验收」两节）。需要这类结论时，明确告诉用户
 "这需要一次装机验证"，**不要凭推断声称已验证**。
 
 清单与真实文件是否对应**是可以验的**，前提是能看见 iVentoy 目录（WSL 下即 `/mnt/c/...`）：
@@ -94,7 +94,7 @@ grep -c "" user/deploy/tool_files.txt   # 应为 114
 cd "<iVentoy>/user/deploy"
 find tool -type f | sed 's|^tool/||' | LC_ALL=C sort > /tmp/a
 tr -d '\r' < tool_files.txt | LC_ALL=C sort > /tmp/b
-comm -3 /tmp/a /tmp/b          # 无输出 = 完全一致（2026-09-20 实测：114 = 114，零差异）
+comm -3 /tmp/a /tmp/b          # 无输出 = 完全一致（前提是清单已现场生成；2026-09-20 曾实测 114 = 114）
 du -sh tool                    # 应为 ~999 MB
 sha256sum tool_files.txt install-drivers.cmd ../scripts/unattend.xml
 ```
@@ -113,5 +113,5 @@ sha256sum tool_files.txt install-drivers.cmd ../scripts/unattend.xml
 
 ## 遗留问题（别擅自"修复"，先问）
 
-README「遗留问题」一节记着三件事：`Windows.old` 成因未查清、日志时间戳不精确（故意不修）、
-旧数字未回改。它们都是**已知且被接受**的状态，动手前先和用户确认。
+README「注意」一节记着两件事：`Windows.old` 成因未查清、日志时间戳不精确（故意不修）。
+它们都是**已知且被接受**的状态，动手前先和用户确认。

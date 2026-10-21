@@ -11,7 +11,7 @@ http://<iVentoy 服务器 IP>:16000/user/deploy/<路径>
 ```
 <iVentoy 解压目录>\user\deploy\
 ├── install-drivers.cmd      ← 本仓库提供，原样复制（客户端脚本）
-├── tool_files.txt           ← 本仓库提供，原样复制（文件清单）
+├── tool_files.txt           ← 本仓库内是空占位，部署时现场生成（文件清单）
 └── tool\                    ← 整个工具文件夹
     ├── DiskGenius.exe
     ├── OpenArk64.exe
@@ -51,7 +51,8 @@ C:\tool\Drvceo_Win10_Win11_x64_Lite\start.bat
 > 文件名，清单就得存成 GBK 编码，等于把"编码问题"从消除变成管理。
 > 上一次因为编码问题（`%date%` + 中文注释）已经翻过车，所以这里选择**统一改成 ASCII 名字**。
 
-**当前 `tool` 里所有文件都已是 ASCII，清单共 114 项。** 之前有两个文件不符合，已改名：
+**清单不随仓库走**：仓库里的 `tool_files.txt` 是空占位，真正的清单在部署前用下文命令现场生成
+（项数以当时的 `tool\` 为准）。历史上曾有两个文件不符合 ASCII，已改名：
 
 | 原名 | 新名 |
 |---|---|
@@ -76,7 +77,8 @@ Get-ChildItem -Recurse -File |
   Sort-Object    | Set-Content -Encoding ASCII ..\tool_files.txt
 ```
 
-生成结果必须是 **ASCII + CRLF**。
+生成结果必须是 **ASCII + CRLF**。生成后的清单留在 iVentoy 目录即可，
+**不要提交回仓库**——仓库里保持空占位。
 
 > 别用 `Compress-Archive` 之类的思路去打包再传——iVentoy 的 HTTP 是静态文件服务，
 > 只能按文件取，不能取目录，也没有目录列表。所以这里用「清单 + 逐文件下载」。
@@ -85,9 +87,10 @@ Get-ChildItem -Recurse -File |
 
 | 项 | 值 |
 |---|---|
-| 清单当前内容 | 114 个文件，约 999 MB |
+| 清单 | 部署时现场生成，项数以实际 `tool\` 为准 |
+| `tool\` 体积 | 约 999 MB（不进 git） |
 | 客户端目标目录 | `C:\tool\` |
-| 未包含 | 无，114 个文件全部包含 |
+| 未包含 | 无（清单覆盖 `tool\` 下全部 ASCII 文件） |
 
 这些全部在**局域网**内传输。首次登录时这段下载发生在**桌面出现之前**，
 所以机器会在"正在准备桌面"停一会儿，属正常现象。
