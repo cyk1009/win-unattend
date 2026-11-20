@@ -363,6 +363,57 @@
       -->
       <TimeZone>China Standard Time</TimeZone>
     </component>
+    <!--
+      ================= 关闭快速启动 与 自动睡眠 =================
+      执行时机：specialize 阶段，以 SYSTEM 身份同步执行，早于 OOBE 和首次登录，
+                因此不依赖网络，也不依赖首登脚本。
+
+      1) powercfg /h off
+         停用休眠。快速启动（hiberboot）本质就是"关机时把内核会话写进
+         hiberfil.sys，开机再读回来"，没有休眠文件就不存在快速启动；
+         同时删掉 hiberfil.sys，省下约 40% 内存大小的磁盘。
+         副作用（已知并接受）：休眠功能一并消失，控制面板里"快速启动"
+         复选框也跟着消失——这正是验收时要看的现象。
+
+         另一种做法是保留休眠、只写 HiberbootEnabled=0。本仓库选择前者：
+         目标机是 200GB 级别的桌面机，不需要休眠，而 h off 一步到位、
+         在设置界面可见、且能省磁盘。
+
+      2) standby-timeout-ac / -dc = 0
+         当前活动电源计划的"在此时间后睡眠"设为"从不"。AC/DC 都写，
+         台式机没有电池时 DC 那条无效但无害；笔记本拔电也不会自动睡。
+         注意：只禁"自动睡眠"，开始菜单里的"睡眠"仍可手动使用；
+         "关闭显示器"的超时没有动，屏幕照常可以熄灭（省电、不叫睡眠）。
+
+      这些命令只影响执行当时的活动电源计划；以后有人手动切换电源计划，
+      超时可能回到该计划的默认值，属于已知边界，不在 answer file 里兜底。
+    -->
+    <component name="Microsoft-Windows-Deployment"
+               processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35"
+               language="neutral"
+               versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action="add">
+          <Description>关闭快速启动：停用休眠并删除 hiberfil.sys</Description>
+          <Order>1</Order>
+          <Path>cmd /c powercfg /h off</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Description>禁止使用交流电时自动睡眠</Description>
+          <Order>2</Order>
+          <Path>cmd /c powercfg /change standby-timeout-ac 0</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Description>禁止使用电池时自动睡眠</Description>
+          <Order>3</Order>
+          <Path>cmd /c powercfg /change standby-timeout-dc 0</Path>
+        </RunSynchronousCommand>
+      </RunSynchronous>
+    </component>
+
   </settings>
 
   <!-- ====================== 阶段 3：oobeSystem ========================= -->
