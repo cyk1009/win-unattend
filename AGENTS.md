@@ -38,9 +38,11 @@ iVentoy 无人值守部署 Windows 11 的**文档 + 配置仓库**：没有代�
 
 1. iVentoy **把自动安装脚本缓存在内存里，只在服务启动时读一次**。改完必须重启 iVentoy，
    否则客户端拿到的还是旧内容，而且**不报错**。
-2. **字节数变了要心里有数**：客户端回传日志里的 `len:` 是校验"客户端拿到哪一版"的唯一手段，
-   应等于磁盘上 `unattend.xml` 的字节数（当前 `25589`，以 `wc -c` 为准）。改动后提醒用户装机时重新确认。
-3. 改动等于**作废上一轮装机验证**。这份 answer file 已在一轮真机上实测通过，
+2. **字节数变了要心里有数**：客户端回传日志里的 `len:` 是校验"客户端拿到哪一版"的唯一手段。
+   部署到 iVentoy 的是 **Windows 检出（CRLF）**，`len:` 应等于该文件在磁盘上的字节数 `28928`；
+   仓库里的 git blob 是 LF，`git show HEAD:unattend.xml | wc -c` 得 `28361`，两者相差的正是行数。
+   拿错口径会把"客户端拿到旧版"误判成正常，改动后提醒用户装机时重新确认。
+3. 改动等于**作废上一轮装机验证**。这份 answer file 上一轮已在真机上实测通过，之后又加了 specialize 阶段的电源设置（2026-11），**需重跑一台才能恢复"已验证"**；
    所以除非有功能理由，不要为了措辞或纯显示问题去动它——
    `%time%` 那个日志时间戳问题是**故意不修**的（见 README「注意」）。
 
@@ -80,7 +82,8 @@ LC_ALL=C grep -n $'[\x80-\xff]' user/deploy/install-drivers.cmd
 tr -d '\r' < user/deploy/tool_files.txt | LC_ALL=C grep -nv '^[A-Za-z0-9._/-]*$'
 
 # 与文档记录的数值比对
-wc -c unattend.xml                  # 应为 25589
+git show HEAD:unattend.xml | wc -c   # 应为 28361（git blob，LF）
+wc -c unattend.xml                   # Windows 检出应为 28928（= 28361 + 567 行）
 grep -c "" user/deploy/tool_files.txt   # 仓库内应为 0（空占位，清单部署时生成）
 ```
 

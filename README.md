@@ -77,6 +77,8 @@ Get-ChildItem -Recurse -File |
 | 版本是 Pro | `winver` |
 | Administrator 已启用 | `net user Administrator` |
 | 自动登录生效 | 重启后直接进桌面 |
+| 快速启动已关 | `powercfg /a` 显示「休眠 尚未启用」；控制面板 → 电源选项 → 选择电源按钮的功能 →「更改当前不可用的设置」里**没有**「启用快速启动」 |
+| 不再自动睡眠 | 设置 → 系统 → 电源 → 屏幕和睡眠：睡眠时间是「从不」；`powercfg /q SCHEME_CURRENT SUB_SLEEP STANDBYIDLE` 的 AC/DC 都为 0 |
 | 驱动总裁被拉起 | `C:\Windows\Temp\install-drivers.log` |
 | 浏览器主页/搜索没被改 | 打开浏览器看一眼 |
 
@@ -97,6 +99,7 @@ Get-ChildItem -Recurse -File |
 | 「缺少计算机所需的介质驱动程序」 | 缺的是**网卡**驱动，Hyper-V 测不出来；需要注入驱动（方案在 git 历史里） |
 | 改了 xml 但客户端行为没变 | 没重启 iVentoy |
 | 自动登录没生效、停在锁屏 | `AutoLogon` 与 `AdministratorPassword` 密码不一致 |
+| 机器仍会自动睡眠 / 电源选项里还有「快速启动」 | 确认 iVentoy 已重启、回传日志 `len:` 已是新版；再看 `C:\Windows\Panther\unattendgc\setupact.log` 里 `Microsoft-Windows-Deployment` 的 RunSynchronous 是否报错（个别机型 specialize 阶段 `powercfg` 不可用） |
 | 没弹驱动总裁 | 看 `install-drivers.log`；没有这个文件 → 16000 不通或 `user\deploy\` 缺文件 |
 | 日志出现 `MISSING or EMPTY` | `tool` 加过文件但没重新生成清单 |
 | 驱动总裁装不出驱动 | 它要联公网，客户机只通局域网就会失败 |
@@ -104,6 +107,7 @@ Get-ChildItem -Recurse -File |
 ## 注意
 
 - 密码 `root123` 明文写在 xml 里，`user/` 又走 HTTP 对外开放，**只适合实验环境**；真部署前改密码。
+- 快速启动是靠**停用休眠**（`powercfg /h off`）关掉的，所以「休眠」功能随之消失；这是有意的取舍，不是缺陷。电源设置只在 specialize 阶段写一次，以后有人切换电源计划，睡眠超时可能回到该计划的默认值。
 - 免费版最多 20 台、禁止商用。
 - 确认客户机拿到的是新版：回传日志 `log\client\<ip>.zip` 里 `ventoy.log` 的 `len:` 应等于磁盘上 `unattend.xml` 的字节数。
 - `Windows.old` 还在，说明 `<WillWipeDisk>` 可能没按预期擦盘；给有数据的机器装机前先确认。
